@@ -43,12 +43,20 @@ class BaseConnector(ABC):
 class S3Connector(BaseConnector):
     """Handles all S3 operations"""
     
-    def __init__(self, aws_access_key: str, aws_secret_key: str, region: str, bucket: str):
+    def __init__(
+        self,
+        aws_access_key: str,
+        aws_secret_key: str,
+        region: str,
+        bucket: str,
+        endpoint_url: Optional[str] = None
+    ):
         super().__init__()
         self.aws_access_key = aws_access_key
         self.aws_secret_key = aws_secret_key
         self.region = region
         self.bucket = bucket
+        self.endpoint_url = endpoint_url
         self._client = None
     
     def connect(self):
@@ -57,7 +65,8 @@ class S3Connector(BaseConnector):
             's3',
             aws_access_key_id=self.aws_access_key,
             aws_secret_access_key=self.aws_secret_key,
-            region_name=self.region
+            region_name=self.region,
+            endpoint_url=self.endpoint_url
         )
         self.logger.info(f"Connected to S3 bucket: {self.bucket}")
         return self._client
@@ -122,7 +131,13 @@ class DuckDBConnector(BaseConnector):
         self._conn.execute(f"SET s3_region = '{self.s3_config.get('region')}';")
         self._conn.execute(f"SET s3_access_key_id = '{self.s3_config.get('access_key')}';")
         self._conn.execute(f"SET s3_secret_access_key = '{self.s3_config.get('secret_key')}';")
-        self._conn.execute("SET s3_use_ssl = TRUE;")
+        endpoint = self.s3_config.get("endpoint")
+        if endpoint:
+            self._conn.execute(f"SET s3_endpoint = '{endpoint}';")
+        if self.s3_config.get("url_style"):
+            self._conn.execute(f"SET s3_url_style = '{self.s3_config.get('url_style')}';")
+        use_ssl = "FALSE" if endpoint and endpoint.startswith("http://") else "TRUE"
+        self._conn.execute(f"SET s3_use_ssl = {use_ssl};")
     
     def disconnect(self):
         """Close DuckDB connection"""

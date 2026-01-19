@@ -1,0 +1,9 @@
+apache-airflow
+apache-airflow-providers-amazon
+boto3
+duckdb
+pandas
+pendulum
+plotly
+psycopg2-binary
+streamlit
