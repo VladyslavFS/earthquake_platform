@@ -4,6 +4,7 @@ from airflow.operators.python import PythonOperator
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
 
+import os
 import sys
 sys.path.append('/opt/airflow')
 
@@ -26,6 +27,7 @@ DAG_ID = "earthquake_daily_pipeline_oop"
 # Load credentials
 aws_creds = get_secret("earthquake/aws/credentials")
 db_creds = get_secret("earthquake/rds/postgres")
+url_style = os.getenv("S3_URL_STYLE", "")
 
 args = {
     "owner": OWNER,
@@ -45,7 +47,8 @@ def initialize_connectors(**context):
         aws_access_key=aws_creds['aws_access_key_id'],
         aws_secret_key=aws_creds['aws_secret_access_key'],
         region=aws_creds['aws_region'],
-        bucket=aws_creds['s3_bucket_name']
+        bucket=aws_creds['s3_bucket_name'],
+        endpoint_url=aws_creds.get('s3_endpoint') or None
     )
     s3_conn.connect()
     
@@ -54,7 +57,9 @@ def initialize_connectors(**context):
         s3_config={
             'access_key': aws_creds['aws_access_key_id'],
             'secret_key': aws_creds['aws_secret_access_key'],
-            'region': aws_creds['aws_region']
+            'region': aws_creds['aws_region'],
+            'endpoint': aws_creds.get('s3_endpoint') or None,
+            'url_style': url_style or None
         }
     )
     duckdb_conn.connect()
@@ -89,7 +94,8 @@ def extract_api_to_s3(**context):
         aws_access_key=aws_creds['aws_access_key_id'],
         aws_secret_key=aws_creds['aws_secret_access_key'],
         region=aws_creds['aws_region'],
-        bucket=aws_creds['s3_bucket_name']
+        bucket=aws_creds['s3_bucket_name'],
+        endpoint_url=aws_creds.get('s3_endpoint') or None
     )
     s3_conn.connect()
     
@@ -98,7 +104,9 @@ def extract_api_to_s3(**context):
         s3_config={
             'access_key': aws_creds['aws_access_key_id'],
             'secret_key': aws_creds['aws_secret_access_key'],
-            'region': aws_creds['aws_region']
+            'region': aws_creds['aws_region'],
+            'endpoint': aws_creds.get('s3_endpoint') or None,
+            'url_style': url_style or None
         }
     )
     duckdb_conn.connect()
@@ -135,7 +143,8 @@ def load_s3_to_postgres(**context):
         aws_access_key=aws_creds['aws_access_key_id'],
         aws_secret_key=aws_creds['aws_secret_access_key'],
         region=aws_creds['aws_region'],
-        bucket=aws_creds['s3_bucket_name']
+        bucket=aws_creds['s3_bucket_name'],
+        endpoint_url=aws_creds.get('s3_endpoint') or None
     )
     s3_conn.connect()
     
@@ -144,7 +153,9 @@ def load_s3_to_postgres(**context):
         s3_config={
             'access_key': aws_creds['aws_access_key_id'],
             'secret_key': aws_creds['aws_secret_access_key'],
-            'region': aws_creds['aws_region']
+            'region': aws_creds['aws_region'],
+            'endpoint': aws_creds.get('s3_endpoint') or None,
+            'url_style': url_style or None
         }
     )
     duckdb_conn.connect()
